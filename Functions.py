@@ -3,7 +3,7 @@ from hcipy import *
 import matplotlib.pyplot as plt
 
 # --------------------------------------------- #
-def Get_PSF(field, wl, f, B):
+def Get_PSF(field, wl, f, B, q=8, num_airy=16):
     '''
     Returns the focal image and the focal grid of a field
     
@@ -18,14 +18,14 @@ def Get_PSF(field, wl, f, B):
     pupil_grid = make_pupil_grid(1024,diameter=B+4)
     res = wl * f / B 
     wavefront = Wavefront(electric_field=field, wavelength=wl)
-    focal_grid = make_focal_grid(q=8, num_airy=16, spatial_resolution=res)
+    focal_grid = make_focal_grid(q=q, num_airy=num_airy, spatial_resolution=res)
     prop = FraunhoferPropagator(pupil_grid, focal_grid, focal_length=f)
     focal_image = prop.forward(wavefront)
     
     return focal_image, focal_grid
 
 # --------------------------------------------- #
-def Get_OTF(focal_image):
+def Get_OTF(field, wl, f, B, q=4, num_airy=8):
     '''
     Returns the OTF of a given focal image
     It returns the Real OTF
@@ -34,10 +34,14 @@ def Get_OTF(focal_image):
     
     :return real_otf:    
     '''
+    focal_image, focal_grid = Get_PSF(field, wl, f, B, q, num_airy)
+
     otf = np.fft.fft2(focal_image.intensity.shaped)
     otf = np.fft.fftshift(otf)
     real_otf = abs((otf))
-    return real_otf
+    
+    return np.concatenate(real_otf, axis=0), focal_grid
+
 
 # --------------------------------------------- #
 def cart2pol(x, y):
